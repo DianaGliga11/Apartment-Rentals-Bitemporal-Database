@@ -122,7 +122,7 @@ create table apartment_manager_version(
 		daterange(valid_from, valid_to) with &&
 	) where (tx_to = '9999-12-31 23:59:59.999999+00') deferrable initially immediate
 );
-comment on table apartment_manager_version is 'bitemporal: administrator of the apartment role'
+comment on table apartment_manager_version is 'bitemporal: administrator of the apartment role';
 
 --Numeric attribute that changes: monthly rate
 create table apartment_rent_version(

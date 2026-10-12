@@ -224,4 +224,3 @@ select
 		(select count(*) from apartment_manager_version) + 
 		(select count(*) from apartment_rent_version)
 	) as total_version_rows;
-
