@@ -21,7 +21,7 @@ declare
 	v_tx_id bigint;
 	v_tx_time timestamptz;
 begin
-	v_tx_time := sin_now();
+	v_tx_time := sim_now();
 
 	insert into tx_registry(tx_time, author, reason)
 	values(
@@ -144,7 +144,7 @@ end $$;
 	Valid period: 2016-01-01 -> 2016-01-15
 	Recorded later: 2016-02-20
 */
-set app.sim_now() = '2026-02-20 09:00:00+00';
+set app.sim_now = '2026-02-05 09:00:00+00';
 
 do $$
 declare 
@@ -174,8 +174,8 @@ begin
 		1,
 		1,
 		600.00,
-		date '2026-01-01',
-		date '2026-01-15',
+		date '2016-01-01',
+		date '2016-01-15',
 		v_tx_time,
 		'9999-12-31 23:59:59.999999+00',
 		v_tx_id
@@ -357,7 +357,7 @@ end $$;
 /*
 	E4 - correction of apartment 1 rent
 */
-set app.sim_now() = '2026-03-25 09:00:00+00';
+set app.sim_now = '2026-02-05 09:00:00+00';
 
 do $$
 declare
@@ -365,7 +365,7 @@ declare
 	v_tx_time timestamptz;
 begin
 	v_tx_time := sim_now();
-	insert into tx_registry(tc_time, author, reason)
+	insert into tx_registry(tx_time, author, reason)
 	values(
 		v_tx_time,
 		'system ',
@@ -374,10 +374,11 @@ begin
 	returning tx_id into v_tx_id;
 
 	update apartment_rent_version
-	set tx_to = v_tx_time;
+	set tx_to = v_tx_time
 	where apartment_id = 1 
 		and valid_from = date '2026-07-01'
 		and tx_to = '9999-12-31 23:59:59.999999+00';
+	
 	insert into apartment_rent_version(
 		apartment_id, 
 		rent_eur,
@@ -499,13 +500,14 @@ end $$;
 /* 
 	E5 - tenant 10 leaves apartment 1
 */
-set app_.sim_now() = '2026-04-15 09:00:00+00';
-do$$
+set app.sim_now = '2026-02-05 09:00:00+00';
+
+do $$
 declare
 	v_tx_id bigint;
 	v_tx_time timestamptz;
 begin
-	v_x_time := sim_now();
+	v_tx_time := sim_now();
 	insert into tx_registry(tx_time, author, reason)
 	values(
 		v_tx_time,
@@ -518,7 +520,7 @@ begin
 	set tx_to = v_tx_time
 	where tenant_id = 10
 		and apartment_id = 1
-		and valid_from = date '2026-01-15'
+		and valid_from = date '2024-01-15'
 		and tx_to = '9999-12-31 23:59:59.999999+00';
 
 	insert into lease_version(
@@ -535,7 +537,7 @@ begin
 		10,
 		1,
 		600.00,
-		date '2026-01-15',
+		date '2024-01-15',
 		date '2026-04-10',
 		v_tx_time,
 		'9999-12-31 23:59:59.999999+00',
@@ -750,7 +752,7 @@ end $$;
 /*
 	E6 - Tenant 10 returns to apartment 1
 */
-set app.sim_now() = '2026-05-15 09:00:00+00';
+set app.sim_now = '2026-02-05 09:00:00+00';
 
 do $$
 declare 
@@ -873,3 +875,447 @@ begin
         v_tx_id
     );
 end $$;
+
+/*
+	E7 - role holder changes
+   	Includes the required "story".
+*/
+
+/*
+    E7 - Mid-period manager change for apartment 1
+    Initial current manager: Manager 5, valid 2025-01-01 -> 2027-01-01
+    New manager: Manager 2, valid from 2026-06-15
+    Recorded before the change takes effect.
+*/
+
+set app.sim_now = '2026-06-05 09:00:00+00';
+
+do $$
+declare
+    v_tx_id bigint;
+    v_tx_time timestamptz;
+begin
+    v_tx_time := sim_now();
+
+    insert into tx_registry(tx_time, author, reason)
+    values (
+        v_tx_time,
+        'system',
+        'E7 - proactive mid-period manager change for apartment 1'
+    )
+    returning tx_id into v_tx_id;
+
+    update apartment_manager_version
+    set tx_to = v_tx_time
+    where apartment_id = 1
+      and valid_from = date '2025-01-01'
+      and valid_to = date '2027-01-01'
+      and tx_to = '9999-12-31 23:59:59.999999+00';
+
+    insert into apartment_manager_version(
+        apartment_id,
+        manager_id,
+        valid_from,
+        valid_to,
+        tx_from,
+        tx_to,
+        tx_id
+    )
+    values
+        (
+            1,
+            5,
+            date '2025-01-01',
+            date '2026-06-15',
+            v_tx_time,
+            '9999-12-31 23:59:59.999999+00',
+            v_tx_id
+        ),
+        (
+            1,
+            2,
+            date '2026-06-15',
+            date '2027-01-01',
+            v_tx_time,
+            '9999-12-31 23:59:59.999999+00',
+            v_tx_id
+        );
+end $$;
+
+
+/*
+    E7 - Later correction of the manager for apartment 1
+    Manager 2 was initially recorded for 2026-06-15 -> 2027-01-01
+    The corrected manager is Manager 3.
+    Question: Who was the manager of apartment 1 on 2026-06-20?
+    As known on:
+        2026-01-01 -> Manager 5
+        2026-06-05 -> Manager 2
+        2026-06-15 -> Manager 3
+*/
+
+set app.sim_now = '2026-06-15 09:00:00+00';
+
+do $$
+declare
+    v_tx_id bigint;
+    v_tx_time timestamptz;
+begin
+    v_tx_time := sim_now();
+
+    insert into tx_registry(tx_time, author, reason)
+    values (
+        v_tx_time,
+        'system',
+        'E7.2 - correction of apartment 1 manager'
+    )
+    returning tx_id into v_tx_id;
+
+    update apartment_manager_version
+    set tx_to = v_tx_time
+    where apartment_id = 1
+      and manager_id = 2
+      and valid_from = date '2026-06-15'
+      and valid_to = date '2027-01-01'
+      and tx_to = '9999-12-31 23:59:59.999999+00';
+
+    insert into apartment_manager_version(
+        apartment_id,
+        manager_id,
+        valid_from,
+        valid_to,
+        tx_from,
+        tx_to,
+        tx_id
+    )
+    values (
+        1,
+        3,
+        date '2026-06-15',
+        date '2027-01-01',
+        v_tx_time,
+        '9999-12-31 23:59:59.999999+00',
+        v_tx_id
+    );
+end $$;
+
+
+/*
+    E7 - Manager change for apartment 2
+    This demonstrates that the role table is used for multiple
+    central objects.
+*/
+
+set app.sim_now = '2026-06-25 09:00:00+00';
+
+do $$
+declare
+    v_tx_id bigint;
+    v_tx_time timestamptz;
+begin
+    v_tx_time := sim_now();
+
+    insert into tx_registry(tx_time, author, reason)
+    values (
+        v_tx_time,
+        'system',
+        'E7.3 - manager change for apartment 2'
+    )
+    returning tx_id into v_tx_id;
+
+    update apartment_manager_version
+    set tx_to = v_tx_time
+    where apartment_id = 2
+      and manager_id = 5
+      and valid_from = date '2025-01-01'
+      and valid_to = date '2027-01-01'
+      and tx_to = '9999-12-31 23:59:59.999999+00';
+
+    insert into apartment_manager_version(
+        apartment_id,
+        manager_id,
+        valid_from,
+        valid_to,
+        tx_from,
+        tx_to,
+        tx_id
+    )
+    values
+        (
+            2,
+            5,
+            date '2025-01-01',
+            date '2026-06-20',
+            v_tx_time,
+            '9999-12-31 23:59:59.999999+00',
+            v_tx_id
+        ),
+        (
+            2,
+            1,
+            date '2026-06-20',
+            date '2027-01-01',
+            v_tx_time,
+            '9999-12-31 23:59:59.999999+00',
+            v_tx_id
+        );
+end $$;
+
+/*
+   E8 - erroneous insert and retraction
+   The record is later closed in transaction time without
+   a replacement.
+*/
+
+/*
+    E8 - Erroneous rent record
+    This record is inserted but should never have been recorded.
+*/
+
+set app.sim_now = '2026-07-10 09:00:00+00';
+
+do $$
+declare
+    v_tx_id bigint;
+    v_tx_time timestamptz;
+begin
+    v_tx_time := sim_now();
+
+    insert into tx_registry(tx_time, author, reason)
+    values (
+        v_tx_time,
+        'system',
+        'E8 - erroneous rent record for apartment 6'
+    )
+    returning tx_id into v_tx_id;
+
+    insert into apartment_rent_version(
+        apartment_id,
+        rent_eur,
+        valid_from,
+        valid_to,
+        tx_from,
+        tx_to,
+        tx_id
+    )
+    values (
+        6,
+        5000.00,
+        date '2026-07-15',
+        date '2026-08-01',
+        v_tx_time,
+        '9999-12-31 23:59:59.999999+00',
+        v_tx_id
+    );
+end $$;
+
+
+/*
+    E8 - Retraction of the erroneous record
+    No replacement is inserted.
+*/
+
+set app.sim_now = '2026-07-20 09:00:00+00';
+
+do $$
+declare
+    v_tx_id bigint;
+    v_tx_time timestamptz;
+begin
+    v_tx_time := sim_now();
+
+    insert into tx_registry(tx_time, author, reason)
+    values (
+        v_tx_time,
+        'system',
+        'E8 - retraction of erroneous apartment 6 rent record'
+    )
+    returning tx_id into v_tx_id;
+
+    update apartment_rent_version
+    set tx_to = v_tx_time
+    where apartment_id = 6
+      and rent_eur = 5000.00
+      and valid_from = date '2026-07-15'
+      and valid_to = date '2026-08-01'
+      and tx_to = '9999-12-31 23:59:59.999999+00';
+end $$;
+
+
+/* 
+   E9 - one change touching multiple tables
+*/
+
+/*
+    E9 - Change affecting lease and rent tables
+    Same tx_id is used in lease_version and apartment_rent_version
+    Apartment 6:
+        tenant 50 lease is updated
+        new rent starts on 2026-08-01
+*/
+set app.sim_now = '2026-08-01 09:00:00+00';
+
+do $$
+declare
+    v_tx_id bigint;
+    v_tx_time timestamptz;
+begin
+    v_tx_time := sim_now();
+
+    insert into tx_registry(tx_time, author, reason)
+    values (
+        v_tx_time,
+        'system',
+        'E9 - apartment 6 lease and rent change'
+    )
+    returning tx_id into v_tx_id;
+
+    update lease_version
+    set tx_to = v_tx_time
+    where tenant_id = 10
+      and apartment_id = 6
+      and valid_from = date '2024-01-15'
+      and tx_to = '9999-12-31 23:59:59.999999+00';
+
+    insert into lease_version(
+        tenant_id,
+        apartment_id,
+        deposit_eur,
+        valid_from,
+        valid_to,
+        tx_from,
+        tx_to,
+        tx_id
+    )
+    values (
+        50,
+        6,
+        1250.00,
+        date '2024-01-15',
+        date '9999-12-31',
+        v_tx_time,
+        '9999-12-31 23:59:59.999999+00',
+        v_tx_id
+    );
+
+    /*
+        Add the new rent.
+    */
+    insert into apartment_rent_version(
+        apartment_id,
+        rent_eur,
+        valid_from,
+        valid_to,
+        tx_from,
+        tx_to,
+        tx_id
+    )
+    values (
+        6,
+        725.00,
+        date '2026-08-01',
+        date '9999-12-31',
+        v_tx_time,
+        '9999-12-31 23:59:59.999999+00',
+        v_tx_id
+    );
+end $$;
+
+
+/*
+    E9 - Change affecting lease and manager tables
+    Same tx_id is used in lease_version and apartment_manager_version
+*/
+set app.sim_now = '2026-09-01 09:00:00+00';
+
+do $$
+declare
+    v_tx_id bigint;
+    v_tx_time timestamptz;
+begin
+    v_tx_time := sim_now();
+
+    insert into tx_registry(tx_time, author, reason)
+    values (
+        v_tx_time,
+        'system',
+        'E9 - apartment 2 lease and manager change'
+    )
+    returning tx_id into v_tx_id;
+
+    update lease_version
+    set tx_to = v_tx_time
+    where tenant_id = 20
+      and apartment_id = 2
+      and valid_from = date '2026-05-12'
+      and tx_to = '9999-12-31 23:59:59.999999+00';
+
+    insert into lease_version(
+        tenant_id,
+        apartment_id,
+        deposit_eur,
+        valid_from,
+        valid_to,
+        tx_from,
+        tx_to,
+        tx_id
+    )
+    values (
+        20,
+        2,
+        800.00,
+        date '2026-05-12',
+        date '9999-12-31',
+        v_tx_time,
+        '9999-12-31 23:59:59.999999+00',
+        v_tx_id
+    );
+
+    update apartment_manager_version
+    set tx_to = v_tx_time
+    where apartment_id = 2
+      and manager_id = 1
+      and valid_from = date '2026-06-20'
+      and valid_to = date '2027-01-01'
+      and tx_to = '9999-12-31 23:59:59.999999+00';
+
+    insert into apartment_manager_version(
+        apartment_id,
+        manager_id,
+        valid_from,
+        valid_to,
+        tx_from,
+        tx_to,
+        tx_id
+    )
+    values (
+        2,
+        4,
+        date '2026-06-20',
+        date '2027-01-01',
+        v_tx_time,
+        '9999-12-31 23:59:59.999999+00',
+        v_tx_id
+    );
+end $$;
+
+--Verification
+select count(*) as transactions from tx_registry;
+select count(*) as lease_versions from lease_version;
+select count(*) as manager_versions from apartment_manager_version;
+select count(*) as rent_versions from apartment_rent_version;
+select
+    (
+        select count(*) from lease_version
+    )
+    +
+    (
+        select count(*) from apartment_manager_version
+    )
+    +
+    (
+        select count(*) from apartment_rent_version
+    ) as total_version_rows;
+select tx_id, tx_time, author, reason
+from tx_registry
+order by tx_time, tx_id;
