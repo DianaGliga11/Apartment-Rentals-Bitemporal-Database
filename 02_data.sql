@@ -170,44 +170,49 @@ begin
 		5 rent periods per apartment
 	*/
 	for v_apartment_id in 1..6 loop
-        for i in 1..5 loop
-            v_start :=
-                make_date(
-                    2021 + i - 1,
-                    1,
-                    1
-                );
-            if i = 5 then
-                v_end := date '2026-06-30';
-            else
-                v_end :=
-                    make_date(
-                        2021 + i,
-                        1,
-                        1
-                    );
-            end if;
-
-            insert into apartment_rent_version(
-                apartment_id,
-                rent_eur,
-                valid_from,
-                valid_to,
-                tx_from,
-                tx_to,
-                tx_id
-            )
-            values (
-                v_apartment_id,
-                400 + (v_apartment_id * 50) + (i * 25),
-                v_start,
-                v_end,
-                v_tx_time,
-                '9999-12-31 23:59:59.999999+00',
-                v_tx_id
-            );
-
-        end loop;
+       for i in 1..5 loop
+		    if i = 1 then
+		        v_start := date '2015-01-01';
+		        v_end   := date '2021-01-01';
+		    elsif i = 2 then
+		        v_start := date '2021-01-01';
+		        v_end   := date '2022-01-01';
+		    elsif i = 3 then
+		        v_start := date '2022-01-01';
+		        v_end   := date '2023-01-01';
+		    elsif i = 4 then
+		        v_start := date '2023-01-01';
+		        v_end   := date '2024-01-01';
+			else
+			    v_start := date '2024-01-01';
+			
+			    case v_apartment_id
+			        when 1 then v_end := date '2026-07-01';
+			        when 2 then v_end := date '2026-08-01';
+			        when 3 then v_end := date '2026-09-01';
+			        else v_end := date '2026-06-30';
+			    end case;
+			end if;
+		
+		    insert into apartment_rent_version(
+		        apartment_id,
+		        rent_eur,
+		        valid_from,
+		        valid_to,
+		        tx_from,
+		        tx_to,
+		        tx_id
+		    )
+		    values (
+		        v_apartment_id,
+		        400 + (v_apartment_id * 50) + (i * 25),
+		        v_start,
+		        v_end,
+		        v_tx_time,
+		        '9999-12-31 23:59:59.999999+00',
+		        v_tx_id
+		    );
+		end loop;
     end loop;
 end $$;
 

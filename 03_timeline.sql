@@ -1198,10 +1198,8 @@ begin
         v_tx_id
     );
 
-    /*
-        Add the new rent.
-    */
-    insert into apartment_rent_version(
+    -- E9: retrospectively record the rent for the uncovered period
+    insert into apartment_rent_version (
         apartment_id,
         rent_eur,
         valid_from,
@@ -1212,11 +1210,31 @@ begin
     )
     values (
         6,
-        725.00,
+        825,
+        date '2026-06-30',
+        date '2026-08-01',
+        v_tx_time,
+        timestamptz '9999-12-31 23:59:59.999999+00',
+        v_tx_id
+    );
+
+	    -- E9: new rent starting on 2026-08-01
+    insert into apartment_rent_version (
+        apartment_id,
+        rent_eur,
+        valid_from,
+        valid_to,
+        tx_from,
+        tx_to,
+        tx_id
+    )
+    values (
+        6,
+        725,
         date '2026-08-01',
         date '9999-12-31',
         v_tx_time,
-        '9999-12-31 23:59:59.999999+00',
+        timestamptz '9999-12-31 23:59:59.999999+00',
         v_tx_id
     );
 end $$;
